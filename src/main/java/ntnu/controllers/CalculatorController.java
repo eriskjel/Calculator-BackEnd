@@ -11,7 +11,6 @@ import java.util.ArrayList;
 
 @CrossOrigin(origins = "http://localhost:8080", maxAge = 3600)
 @RestController
-@RequestMapping("/calc")
 public class CalculatorController {
 
     @Autowired
