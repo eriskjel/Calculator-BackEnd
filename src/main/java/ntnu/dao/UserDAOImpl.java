@@ -65,6 +65,12 @@ public class UserDAOImpl implements UserDAO {
         }
     }
 
+    @Override
+    public User findUserByUsername(String username) {
+        String sql = "SELECT * FROM users WHERE username = ?";
+        return jdbcTemplate.queryForObject(sql, new Object[]{username}, new UserRowMapper());
+    }
+
     private static final class UserRowMapper implements RowMapper<User> {
         public User mapRow(ResultSet rs, int rowNum) throws SQLException {
             int id = rs.getInt("id");
