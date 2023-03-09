@@ -1,4 +1,4 @@
-package ntnu.services;
+package ntnu.service;
 
 import ntnu.models.Equation;
 import org.springframework.stereotype.Service;
@@ -15,16 +15,16 @@ public class CalculatorService {
     public void solve(Equation equation){
         this.equation = equation;
         if(equation.getOperator() == '+'){
-            answer = equation.getN1() + equation.getN2();
+            answer = equation.getFactor1() + equation.getFactor2();
             return;
         }else if(equation.getOperator() == '-'){
-            answer = equation.getN1() - equation.getN2();
+            answer = equation.getFactor1() - equation.getFactor2();
             return;
         }else if(equation.getOperator() == '*'){
-            answer = equation.getN1() * equation.getN2();
+            answer = equation.getFactor1() * equation.getFactor2();
             return;
         }else if(equation.getOperator() == '/'){
-            answer = equation.getN1() / equation.getN2();
+            answer = equation.getFactor1() / equation.getFactor2();
             return;
         }
         answer = 0;
