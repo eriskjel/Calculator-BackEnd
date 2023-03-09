@@ -1,6 +1,6 @@
 package ntnu.controllers;
 
-import ntnu.services.CalculatorService;
+import ntnu.service.CalculatorService;
 import ntnu.models.Equation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ public class CalculatorController {
     @PostMapping("/solve")
     public double solve(@RequestBody Equation equation){
         service.solve(equation);
-        logger.info("Equation: n1: " + equation.getN1() +", n2: " +  equation.getN2()
+        logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
                 + ", operator: " + equation.getOperator());
         logger.info("Answer: " + service.getAnswer());
 
