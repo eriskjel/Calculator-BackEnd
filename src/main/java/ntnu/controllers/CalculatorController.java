@@ -3,6 +3,7 @@ package ntnu.controllers;
 import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationResponse;
 import ntnu.auth.CalculationResponse;
+import ntnu.enums.AuthenticationState;
 import ntnu.models.User;
 import ntnu.service.AuthenticationService;
 import ntnu.service.CalculatorService;
@@ -11,6 +12,7 @@ import ntnu.service.JwtService;
 import ntnu.service.UserDetailsServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -39,42 +41,53 @@ public class CalculatorController {
         return calculatorService.getAnswer();
     }
 
-    /*@PostMapping("/solve")
-    public double solve(@RequestBody Equation equation){
-        service.solve(equation);
-        logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
-                + ", operator: " + equation.getOperator());
-        logger.info("Answer: " + service.getAnswer());
-
-        if(service.addToLog(service.toString())){
-            logger.info("Added to log: " + service.toString());
-        }
-        return service.getAnswer();
-    }*/
-
     @PostMapping("/solve")
-    public ResponseEntity<CalculationResponse> solve(@RequestBody Equation equation, @RequestHeader("Authorization") String tokenHeader){
+    public ResponseEntity<CalculationResponse> solve(@RequestBody Equation equation, @RequestHeader(value="Authorization", required = false) String tokenHeader){
+        System.out.println(tokenHeader);
+        if (tokenHeader == null || tokenHeader.isEmpty() || tokenHeader.equals("Bearer null")) {
+            CalculationResponse response = CalculationResponse.builder()
+                    .errorMessage("User is not authenticated")
+                    .authenticationState(AuthenticationState.UNAUTHENTICATED)
+                    .build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
         String token = tokenHeader.replace("Bearer ", "");
         System.out.println(token);
+
         User user = userDetailsService.findUserByUsername(jwtService.extractUsername(token));
-        if(jwtService.isTokenValid(token, user)){
+        AuthenticationState authState = jwtService.getAuthenticationState(token, user);
+
+        if(authState == AuthenticationState.AUTHENTICATED){
             calculatorService.solve(equation);
 
             logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
                     + ", operator: " + equation.getOperator());
             logger.info("Answer: " + calculatorService.getAnswer());
-            CalculationResponse response = CalculationResponse.builder().result(calculatorService.getAnswer()).build();
+            CalculationResponse response = CalculationResponse.builder()
+                    .result(calculatorService.getAnswer())
+                    .authenticationState(authState) // Add this line
+                    .build();
             if(calculatorService.addToLog(calculatorService.toString())){
                 logger.info("Added to log: " + calculatorService.toString());
             }
             return ResponseEntity.ok(response);
         }
         else{
-            CalculationResponse response = CalculationResponse.builder().errorMessage("Invalid token").build();
+            String errorMessage = "";
+            if(authState == AuthenticationState.UNAUTHENTICATED){
+                errorMessage = "User is not authenticated";
+            } else if(authState == AuthenticationState.TOKEN_EXPIRED){
+                errorMessage = "Token is expired";
+            }
+            CalculationResponse response = CalculationResponse.builder()
+                    .errorMessage(errorMessage)
+                    .authenticationState(authState) // Add this line
+                    .build();
             return ResponseEntity.badRequest().body(response);
         }
-
     }
+
 
     @GetMapping("/log")
     @PreAuthorize("isAuthenticated()")

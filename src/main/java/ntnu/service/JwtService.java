@@ -6,6 +6,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import ntnu.enums.AuthenticationState;
+import ntnu.models.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -70,6 +72,17 @@ public class JwtService {
 
         return (isUsernameMatch && !isTokenExpired);
     }
+
+    public AuthenticationState getAuthenticationState(String token, User user) {
+        if (user == null) {
+            return AuthenticationState.UNAUTHENTICATED;
+        }
+        if (isTokenExpired(token)) {
+            return AuthenticationState.TOKEN_EXPIRED;
+        }
+        return AuthenticationState.AUTHENTICATED;
+    }
+
 
 
 

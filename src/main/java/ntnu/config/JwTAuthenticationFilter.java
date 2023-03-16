@@ -1,6 +1,5 @@
 package ntnu.config;
 
-
 import lombok.RequiredArgsConstructor;
 import ntnu.service.JwtService;
 import org.springframework.lang.NonNull;
@@ -18,7 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
 @Component
 @RequiredArgsConstructor
 public class JwTAuthenticationFilter extends OncePerRequestFilter {
@@ -26,29 +24,27 @@ public class JwTAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
-
-    /**
-     * This method is called by the filter method. It is responsible for the actual filtering work.
-     * @param request the request to process
-     * @param response the response associated with the request
-     * @param filterChain
-     * @throws ServletException in the event of an unhandled exception
-     * @throws IOException in the event of an I/O problem when reading the request or writing the response
-     */
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
         final String authorizationHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+
+        String username = null;
+        String jwt = null;
+
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            jwt = authorizationHeader.substring(7);
+            try {
+                username = jwtService.extractUsername(jwt);
+            } catch (Exception e) {
+                username = null;
+            }
         }
-        jwt = authorizationHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
+
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            if(jwtService.isTokenValid(jwt, userDetails)){
+
+            if (jwtService.isTokenValid(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
