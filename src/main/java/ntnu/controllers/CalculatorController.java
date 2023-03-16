@@ -120,7 +120,7 @@ public class CalculatorController {
                 logger.info("User is not authenticated");
             }
             else if (authState == AuthenticationState.AUTHENTICATED) {
-                return calculatorService.getAllCalculations();
+                return calculatorService.findAllCalculationsByUsername(user.getUsername());
             }
             else {
                 logger.info("Unknown authentication state");

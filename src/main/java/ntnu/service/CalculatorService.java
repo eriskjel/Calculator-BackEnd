@@ -65,8 +65,8 @@ public class CalculatorService {
         return log;
     }
 
-    public List<Equation> getAllCalculations() {
-        return equationRepository.findAll();
+    public List<Equation> findAllCalculationsByUsername(String username) {
+        return equationRepository.findAllByUsername(username);
     }
 
 }
