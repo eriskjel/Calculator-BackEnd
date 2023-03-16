@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationResponse;
 import ntnu.auth.CalculationResponse;
 import ntnu.enums.AuthenticationState;
+import ntnu.exceptions.TokenExpiredException;
 import ntnu.models.User;
 import ntnu.service.AuthenticationService;
 import ntnu.service.CalculatorService;
@@ -43,7 +44,6 @@ public class CalculatorController {
 
     @PostMapping("/solve")
     public ResponseEntity<CalculationResponse> solve(@RequestBody Equation equation, @RequestHeader(value="Authorization", required = false) String tokenHeader){
-        System.out.println(tokenHeader);
         if (tokenHeader == null || tokenHeader.isEmpty() || tokenHeader.equals("Bearer null")) {
             CalculationResponse response = CalculationResponse.builder()
                     .errorMessage("User is not authenticated")
@@ -55,36 +55,43 @@ public class CalculatorController {
         String token = tokenHeader.replace("Bearer ", "");
         System.out.println(token);
 
-        User user = userDetailsService.findUserByUsername(jwtService.extractUsername(token));
-        AuthenticationState authState = jwtService.getAuthenticationState(token, user);
+        try {
+            User user = userDetailsService.findUserByUsername(jwtService.extractUsername(token));
+            AuthenticationState authState = jwtService.getAuthenticationState(token, user);
 
-        if(authState == AuthenticationState.AUTHENTICATED){
-            calculatorService.solve(equation);
+            if(authState == AuthenticationState.AUTHENTICATED){
+                calculatorService.solve(equation);
 
-            logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
-                    + ", operator: " + equation.getOperator());
-            logger.info("Answer: " + calculatorService.getAnswer());
-            CalculationResponse response = CalculationResponse.builder()
-                    .result(calculatorService.getAnswer())
-                    .authenticationState(authState) // Add this line
-                    .build();
-            if(calculatorService.addToLog(calculatorService.toString())){
-                logger.info("Added to log: " + calculatorService.toString());
+                logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
+                        + ", operator: " + equation.getOperator());
+                logger.info("Answer: " + calculatorService.getAnswer());
+                CalculationResponse response = CalculationResponse.builder()
+                        .result(calculatorService.getAnswer())
+                        .authenticationState(authState)
+                        .build();
+                if(calculatorService.addToLog(calculatorService.toString())){
+                    logger.info("Added to log: " + calculatorService.toString());
+                }
+                return ResponseEntity.ok(response);
             }
-            return ResponseEntity.ok(response);
-        }
-        else{
-            String errorMessage = "";
-            if(authState == AuthenticationState.UNAUTHENTICATED){
-                errorMessage = "User is not authenticated";
-            } else if(authState == AuthenticationState.TOKEN_EXPIRED){
-                errorMessage = "Token is expired";
+            else {
+                String errorMessage = "";
+                if(authState == AuthenticationState.UNAUTHENTICATED){
+                    errorMessage = "User is not authenticated";
+                }
+                CalculationResponse response = CalculationResponse.builder()
+                        .errorMessage(errorMessage)
+                        .authenticationState(authState)
+                        .build();
+                return ResponseEntity.badRequest().body(response);
             }
+
+        } catch (TokenExpiredException e) {
             CalculationResponse response = CalculationResponse.builder()
-                    .errorMessage(errorMessage)
-                    .authenticationState(authState) // Add this line
+                    .errorMessage("Token is expired")
+                    .authenticationState(AuthenticationState.TOKEN_EXPIRED)
                     .build();
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 

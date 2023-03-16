@@ -2,11 +2,13 @@ package ntnu.service;
 
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import ntnu.enums.AuthenticationState;
+import ntnu.exceptions.TokenExpiredException;
 import ntnu.models.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -42,15 +44,10 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-
-    /*public Boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }*/
 
     public Boolean isTokenValid(String token, UserDetails userDetails) {
         if (userDetails == null) {
@@ -73,15 +70,21 @@ public class JwtService {
         return (isUsernameMatch && !isTokenExpired);
     }
 
-    public AuthenticationState getAuthenticationState(String token, User user) {
-        if (user == null) {
-            return AuthenticationState.UNAUTHENTICATED;
+    public AuthenticationState getAuthenticationState(String token, UserDetails userDetails) {
+        if (isTokenValid(token, userDetails)) {
+            return AuthenticationState.AUTHENTICATED;
         }
-        if (isTokenExpired(token)) {
+        try {
+            extractAllClaims(token);
+        } catch (ExpiredJwtException e) {
             return AuthenticationState.TOKEN_EXPIRED;
+        } catch (Exception e) {
+            // Ignore other exceptions
         }
-        return AuthenticationState.AUTHENTICATED;
+
+        return AuthenticationState.UNAUTHENTICATED;
     }
+
 
 
 
@@ -95,14 +98,19 @@ public class JwtService {
     }
 
 
-    private Claims extractAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    private Claims extractAllClaims(String token) throws TokenExpiredException {
+        try {
+            return Jwts
+                    .parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("Token is expired");
+        }
     }
+
 
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
