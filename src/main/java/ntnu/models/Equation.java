@@ -27,6 +27,12 @@ public class Equation {
     @Column(name = "operator")
     private char operator;
 
+    @Column(name = "result")
+    private double result;
+
+    @Column(name = "username")
+    private String username;
+
     @JsonCreator
     public Equation(
             @JsonProperty("n1") double factor1,
@@ -35,5 +41,9 @@ public class Equation {
         this.factor1 = factor1;
         this.factor2 = factor2;
         this.operator = operator != null && operator.length() > 0 ? operator.charAt(0) : '\0';
+    }
+
+    public void setResult(double result) {
+        this.result = result;
     }
 }

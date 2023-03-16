@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:8080", maxAge = 3600)
 @RestController
@@ -60,7 +61,9 @@ public class CalculatorController {
             AuthenticationState authState = jwtService.getAuthenticationState(token, user);
 
             if(authState == AuthenticationState.AUTHENTICATED){
-                calculatorService.solve(equation);
+                //calculatorService.solve(equation);
+
+                calculatorService.saveCalculation(equation, user.getUsername());
 
                 logger.info("Equation: n1: " + equation.getFactor1() +", n2: " +  equation.getFactor2()
                         + ", operator: " + equation.getOperator());
@@ -101,6 +104,31 @@ public class CalculatorController {
     public ArrayList<String> log(){
         logger.info("Returned log: " + calculatorService.toString());
         return calculatorService.getLog();
+    }
+
+    @GetMapping("/allcalculations")
+    public List<Equation> getAllCalculations(@RequestHeader(value="Authorization", required = false) String tokenHeader) {
+        System.out.println(tokenHeader);
+        String token = tokenHeader.replace("Bearer ", "");
+        System.out.println(token);
+        try{
+            User user = userDetailsService.findUserByUsername(jwtService.extractUsername(token));
+            AuthenticationState authState = jwtService.getAuthenticationState(token, user);
+            System.out.println(authState);
+
+            if (authState == AuthenticationState.UNAUTHENTICATED) {
+                logger.info("User is not authenticated");
+            }
+            else if (authState == AuthenticationState.AUTHENTICATED) {
+                return calculatorService.getAllCalculations();
+            }
+            else {
+                logger.info("Unknown authentication state");
+            }
+        }catch (TokenExpiredException e){
+            logger.info("Token is expired");
+        }
+        return null;
     }
 
 }
