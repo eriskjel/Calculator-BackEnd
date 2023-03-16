@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationRequest;
 import ntnu.auth.AuthenticationResponse;
 import ntnu.auth.RegisterRequest;
+import ntnu.exceptions.InvalidCredentialsException;
 import ntnu.exceptions.UserAlreadyExistsException;
 import ntnu.models.Role;
 import ntnu.models.User;
@@ -40,10 +41,12 @@ public class AuthenticationService {
         return AuthenticationResponse.builder().token(jwToken).build();
     }
 
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+    public AuthenticationResponse authenticate(AuthenticationRequest request) throws InvalidCredentialsException {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        var user = repository.findByUsername(request.getUsername()).orElseThrow();
+        var user = repository.findByUsername(request.getUsername()).orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
         var jwToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder().token(jwToken).build();
     }
+
+
 }

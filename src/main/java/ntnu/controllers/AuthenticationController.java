@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationRequest;
 import ntnu.auth.AuthenticationResponse;
 import ntnu.auth.RegisterRequest;
+import ntnu.exceptions.InvalidCredentialsException;
+import ntnu.exceptions.UserAlreadyExistsException;
 import ntnu.service.AuthenticationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:8080")
 public class AuthenticationController {
 
 
@@ -23,14 +25,18 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request){
         try {
             return ResponseEntity.ok(service.register(request));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(AuthenticationResponse.builder().errorMessage("Username already exists").build());
+        } catch (UserAlreadyExistsException e) {
+            return ResponseEntity.badRequest().body(AuthenticationResponse.builder().errorMessage(e.getMessage()).build());
         }
     }
 
-    @PostMapping("/authenticate")
+    @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request){
-        return ResponseEntity.ok(service.authenticate(request));
+        try {
+            return ResponseEntity.ok(service.authenticate(request));
+        } catch (InvalidCredentialsException e) {
+            return ResponseEntity.badRequest().body(AuthenticationResponse.builder().errorMessage(e.getMessage()).build());
+        }
     }
 
 }
