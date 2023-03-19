@@ -1,6 +1,8 @@
 package ntnu.controllers;
 
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationRequest;
 import ntnu.auth.AuthenticationResponse;
@@ -31,12 +33,22 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request){
+    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request, HttpServletResponse response) {
         try {
-            return ResponseEntity.ok(service.authenticate(request));
+            AuthenticationResponse authResponse = service.authenticate(request);
+
+            // Set access token as an HttpOnly cookie
+            Cookie accessTokenCookie = new Cookie("accessToken", authResponse.getToken());
+            accessTokenCookie.setHttpOnly(true);
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(5 * 60); // 5 minutes
+            response.addCookie(accessTokenCookie);
+
+            return ResponseEntity.ok(authResponse);
         } catch (InvalidCredentialsException e) {
             return ResponseEntity.badRequest().body(AuthenticationResponse.builder().errorMessage(e.getMessage()).build());
         }
     }
+
 
 }

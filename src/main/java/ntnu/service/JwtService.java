@@ -43,29 +43,19 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 20)) // 20 minutes
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5)) // 5 minutes
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Boolean isTokenValid(String token, UserDetails userDetails) {
         if (userDetails == null) {
-            System.out.println("UserDetails is null.");
             return false;
         }
 
         final String username = extractUsername(token);
         boolean isUsernameMatch = username.equals(userDetails.getUsername());
         boolean isTokenExpired = isTokenExpired(token);
-
-        if (!isUsernameMatch) {
-            System.out.println("Username from token: " + username + " does not match UserDetails username: " + userDetails.getUsername());
-        }
-
-        if (isTokenExpired) {
-            System.out.println("Token is expired.");
-        }
-
         return (isUsernameMatch && !isTokenExpired);
     }
 
