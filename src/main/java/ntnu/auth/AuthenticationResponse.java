@@ -1,6 +1,7 @@
 package ntnu.auth;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class AuthenticationResponse {
 
 
+    @JsonIgnore
     private String token;
     private String errorMessage;
 

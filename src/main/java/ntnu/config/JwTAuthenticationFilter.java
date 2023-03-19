@@ -1,5 +1,6 @@
 package ntnu.config;
 
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import ntnu.enums.AuthenticationState;
 import ntnu.service.JwtService;
@@ -30,17 +31,26 @@ public class JwTAuthenticationFilter extends OncePerRequestFilter {
 
     private final Logger logger = LoggerFactory.getLogger(JwTAuthenticationFilter.class);
 
+    private String extractTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-        final String authorizationHeader = request.getHeader("Authorization");
+        final String jwt = extractTokenFromCookie(request);
 
         String username = null;
-        String jwt = null;
         AuthenticationState authState = AuthenticationState.UNAUTHENTICATED;
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
+        if (jwt != null) {
             try {
                 username = jwtService.extractUsername(jwt);
             } catch (ExpiredJwtException e) {
@@ -71,4 +81,5 @@ public class JwTAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
 }

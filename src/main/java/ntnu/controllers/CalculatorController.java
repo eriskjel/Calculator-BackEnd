@@ -1,5 +1,7 @@
 package ntnu.controllers;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import ntnu.auth.AuthenticationResponse;
 import ntnu.auth.CalculationResponse;
@@ -44,16 +46,10 @@ public class CalculatorController {
     }
 
     @PostMapping("/solve")
-    public ResponseEntity<CalculationResponse> solve(@RequestBody Equation equation, @RequestHeader(value="Authorization", required = false) String tokenHeader){
-        if (tokenHeader == null || tokenHeader.isEmpty() || tokenHeader.equals("Bearer null")) {
-            CalculationResponse response = CalculationResponse.builder()
-                    .errorMessage("User is not authenticated")
-                    .authenticationState(AuthenticationState.UNAUTHENTICATED)
-                    .build();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
+    public ResponseEntity<CalculationResponse> solve(@RequestBody Equation equation, HttpServletRequest request){
+        String token = extractTokenFromCookie(request);
 
-        String token = tokenHeader.replace("Bearer ", "");
+
         System.out.println(token);
 
         try {
@@ -107,10 +103,8 @@ public class CalculatorController {
     }
 
     @GetMapping("/allcalculations")
-    public List<Equation> getAllCalculations(@RequestHeader(value="Authorization", required = false) String tokenHeader) {
-        System.out.println(tokenHeader);
-        String token = tokenHeader.replace("Bearer ", "");
-        System.out.println(token);
+    public List<Equation> getAllCalculations(HttpServletRequest request) {
+        String token = extractTokenFromCookie(request);
         try{
             User user = userDetailsService.findUserByUsername(jwtService.extractUsername(token));
             AuthenticationState authState = jwtService.getAuthenticationState(token, user);
@@ -130,5 +124,19 @@ public class CalculatorController {
         }
         return null;
     }
+
+
+    private String extractTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
 
 }
